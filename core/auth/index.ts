@@ -48,6 +48,18 @@ const LogoutMutation = graphql(`
   }
 `);
 
+
+const GetCustomer= graphql(`
+  query GetCustomer {
+    customer {
+      entityId
+      firstName
+      lastName
+      email
+    }
+  }
+`);
+
 const PasswordCredentials = z.object({
   type: z.literal('password'),
   email: z.string().email(),
@@ -59,7 +71,16 @@ const JwtCredentials = z.object({
   jwt: z.string(),
 });
 
-export const Credentials = z.discriminatedUnion('type', [PasswordCredentials, JwtCredentials]);
+
+const CatCredentials = z.object({
+  type: z.literal('cat'),
+  cat: z.string(),
+  email: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+});
+
+export const Credentials = z.discriminatedUnion('type', [PasswordCredentials, JwtCredentials, CatCredentials]);
 
 async function loginWithPassword(
   email: string,
@@ -122,6 +143,22 @@ async function loginWithJwt(jwt: string, cartEntityId?: string): Promise<User | 
   };
 }
 
+
+async function loginWithCat(cat: string, email: string, firstName: string, lastName: string, cartEntityId?: string): Promise<User | null> {
+  const impersonatorId = null;
+  
+
+  return {
+    name: `${firstName} ${lastName}`,
+    email: email,
+    customerAccessToken: cat,
+    impersonatorId,
+  };
+}
+
+
+
+
 async function authorize(credentials: unknown): Promise<User | null> {
   const parsed = Credentials.parse(credentials);
   const cookieStore = await cookies();
@@ -140,6 +177,12 @@ async function authorize(credentials: unknown): Promise<User | null> {
       return loginWithJwt(jwt, cartEntityId);
     }
 
+    case 'cat': {
+      const { cat, email, firstName, lastName } = parsed;
+
+      return loginWithCat(cat, email, firstName, lastName, cartEntityId);
+    }
+
     default:
       return null;
   }
@@ -154,6 +197,8 @@ const config = {
   },
   callbacks: {
     jwt: ({ token, user }) => {
+
+      console.log('jwt callback', token, user);
       // user can actually be undefined
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (user?.customerAccessToken) {
@@ -198,6 +243,7 @@ const config = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
         jwt: { type: 'text' },
+        cat: { type: 'text' },
       },
       authorize,
     }),
