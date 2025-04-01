@@ -56,6 +56,19 @@ const LogoutMutation = graphql(`
   }
 `);
 
+
+
+const GetCustomer= graphql(`
+  query GetCustomer {
+    customer {
+      entityId
+      firstName
+      lastName
+      email
+    }
+  }
+`);
+
 const PasswordCredentials = z.object({
   email: z.string().email(),
   password: z.string().min(1),
@@ -75,6 +88,15 @@ const SessionUpdate = z.object({
   user: z.object({
     cartId: z.string().nullable().optional(),
   }),
+});
+
+
+const CatCredentials = z.object({
+  type: z.literal('cat'),
+  cat: z.string(),
+  email: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
 });
 
 async function handleLoginCart(guestCartId?: string, loginResultCartId?: string) {
@@ -165,6 +187,19 @@ function loginWithAnonymous(credentials: unknown): User | null {
 
   return {
     cartId: cartId ?? null,
+  };
+}
+
+
+async function loginWithCat(cat: string, email: string, firstName: string, lastName: string, cartEntityId?: string): Promise<User | null> {
+  const impersonatorId = null;
+  
+
+  return {
+    name: `${firstName} ${lastName}`,
+    email: email,
+    customerAccessToken: cat,
+    impersonatorId,
   };
 }
 
@@ -276,6 +311,13 @@ const config = {
       },
       authorize: loginWithJwt,
     }),
+    CredentialsProvider({
+      id: 'jwt',
+      credentials: {
+        cat: { type: 'text' },
+      },
+      authorize:loginWithCat,
+    }), 
   ],
 } satisfies NextAuthConfig;
 
